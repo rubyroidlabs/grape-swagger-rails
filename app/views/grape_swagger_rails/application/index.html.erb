@@ -7,8 +7,8 @@
   <%= stylesheet_link_tag 'grape_swagger_rails/application.css' %>
   <%= javascript_include_tag 'grape_swagger_rails/application.js' %>
   <script type="text/javascript">
-	$(function () {
-	  var options = $("html").data('swagger-options');
+  $(function () {
+    var options = $("html").data('swagger-options');
 
     var headers = {};
     <% GrapeSwaggerRails.options.headers.each_with_index do |(key, value), index| %>
@@ -28,7 +28,11 @@
           console.log(swaggerUi);
         }
         $('pre code').each(function(i, e) {hljs.highlightBlock(e)});
-        addApiKeyAuthorization();
+        <% if GrapeSwaggerRails.options.auth_type == 'bearer' %>
+          addTokenKeysAuthorization();
+        <% else %>
+          addApiKeyAuthorization();
+        <% end %>
       },
       onFailure: function(data) {
         if('console' in window) {
@@ -52,9 +56,27 @@
         }
         window.swaggerUi.api.clientAuthorizations.add("key", new SwaggerClient.ApiKeyAuthorization(options.api_key_name, key, options.api_key_type));
       }
-  }
+    }
 
-    $('#input_apiKey').change(addApiKeyAuthorization);
+    function addTokenKeysAuthorization() {
+      var uid = $('#input_uid')[0].value;
+      var client = $('#input_client')[0].value;
+      var accessToken = $('#input_accessToken')[0].value;
+      var expiry = $('#input_expiry')[0].value;
+
+      if (uid && client && accessToken && expiry) {
+        window.swaggerUi.api.clientAuthorizations.add("uid", new SwaggerClient.ApiKeyAuthorization("uid", uid, options.api_key_type));
+        window.swaggerUi.api.clientAuthorizations.add("client", new SwaggerClient.ApiKeyAuthorization("client", client, options.api_key_type));
+        window.swaggerUi.api.clientAuthorizations.add("access-token", new SwaggerClient.ApiKeyAuthorization("access-token", accessToken, options.api_key_type));
+        window.swaggerUi.api.clientAuthorizations.add("expiry", new SwaggerClient.ApiKeyAuthorization("expiry", expiry, options.api_key_type));
+      }
+    }
+
+    <% if GrapeSwaggerRails.options.auth_type == 'bearer' %>
+      $('#input_apiKey').change(addTokenKeysAuthorization);
+    <% else %>
+      $('#input_apiKey').change(addApiKeyAuthorization);
+    <% end %>
 
     window.swaggerUi.load();
 
@@ -72,6 +94,10 @@
       display: none;
       <% end %>
     }
+
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 
@@ -81,8 +107,16 @@
     <a id="logo" href="<%= GrapeSwaggerRails.options.app_url %>"><%= GrapeSwaggerRails.options.app_name %></a>
 
     <form id='api_selector'>
-      <div class='input'><input placeholder="http://example.com/api" id="input_baseUrl" name="baseUrl" type="text"/></div>
-      <div class='input'><input placeholder="api_key" id="input_apiKey" name="apiKey" type="text" value="<%= GrapeSwaggerRails.options.api_key_default_value %>"/></div>
+      <% if GrapeSwaggerRails.options.auth_type == 'bearer' %>
+        <div class='hidden'><input placeholder="http://example.com/api" id="input_baseUrl" name="baseUrl" type="text"/></div>
+        <div class='input'><input placeholder="uid" id="input_uid" name="uid" type="text" value="<%= GrapeSwaggerRails.options.uid_default_value %>"/></div>
+        <div class='input'><input placeholder="client" id="input_client" name="client" type="text" value="<%= GrapeSwaggerRails.options.client_default_value %>"/></div>
+        <div class='input'><input placeholder="access_token" id="input_accessToken" name="accessToken" type="text" value="<%= GrapeSwaggerRails.options.access_token_default_value %>"/></div>
+        <div class='input'><input placeholder="expiry" id="input_expiry" name="expiry" type="text" value="<%= GrapeSwaggerRails.options.expiry_default_value %>"/></div>
+      <% else %>
+        <div class='input'><input placeholder="http://example.com/api" id="input_baseUrl" name="baseUrl" type="text"/></div>
+        <div class='input'><input placeholder="api_key" id="input_apiKey" name="apiKey" type="text" value="<%= GrapeSwaggerRails.options.api_key_default_value %>"/></div>
+      <% end %>
       <div class='input'><a id="explore" class="exploreBtn" href="#">Explore</a></div>
     </form>
   </div>
